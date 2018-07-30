@@ -2,6 +2,11 @@
 
 > 收集自己用过或者试验过的一些有用的代码片段或者算法实现，而不是简单地从别的地方fork后看都没看。人生路漫漫，自勉！
 
+- [functional-chip](#functional-chip)
+  - [数组扁平化](#数组扁平化)
+  - [快速排序](#快速排序)
+  - [二叉树](#二叉树)
+
 ## 数组扁平化
 
 将嵌套的多维数组变为一维数组，可能首先想到的是递归，但递归效率低且不优雅。可以如下实现 :
@@ -113,5 +118,77 @@ function quickSort (arr) {
     list.push([now[0], pivotIndex - 1])
     list.push([pivotIndex + 1, now[1]])
   }
+}
+```
+
+## 二叉树
+
+二叉树是一种常用的数据结构，下面列出二叉搜索树的实现，先是树的生成 :
+
+```javascript
+function Node (data, left, right) {
+  this.data = data // 节点数据
+  this.left = left // 左节点
+  this.right = right // 右节点
+}
+// 节点数据获取
+Node.prototype.show = function () {
+  return this.data
+}
+// 二叉搜索树构造函数
+function BST () {
+  this.root = null // 根节点
+}
+// 节点插入，也就是树的生成
+BST.prototype.insert = function (data) {
+  var node = new Node(data, null, null)
+  if (this.root === null) {
+    this.root = node
+    return
+  }
+  var current = this.root, parent = null
+  while (current) {
+    parent = current
+    if (data < current.data) {
+      current = current.left
+      if (current === null) {
+        parent.left = node
+        break
+      }
+    } else {
+      current = current.right
+      if (current === null) {
+        parent.right = node
+        break
+      }
+    }
+  }
+}
+```
+
+中序遍历的递归实现 :
+
+```javascript
+BST.prototype.centerOrder = function (node) {
+  if (node === null) return []
+  return this.centerOrder(node.left).concat([node.show()], this.centerOrder(node.right))
+}
+```
+
+非递归实现 :
+
+```javascript
+BST.prototype.centerOrderArr = function () {
+  var list = [], dataList = [], current = this.root
+  while (current !== null || list.length !== 0) {
+    while (current !== null) {
+      list.push(current)
+      current = current.left
+    }
+    current = list.pop()
+    dataList.push(current.show())
+    current = current.right
+  }
+  return dataList
 }
 ```
