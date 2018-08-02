@@ -78,7 +78,7 @@ function quickSort (arr) {
 
 > 上面算法实现中优化了标志数的选取，标志数越是接近中位数，效率越高。
 
-上面的实现是基于切割数组进行排序的，空间复杂度会高点，当时代码比较易懂。也可以基于指针(下标)来实现空间复杂度会比较低 :
+上面的实现是基于切割数组进行排序的，空间复杂度会高点，但是代码比较易懂。也可以基于指针(下标)来实现空间复杂度会比较低 :
 
 ```javascript
 function quickSort (arr, leftIndex, rightIndex) {
@@ -191,4 +191,39 @@ BST.prototype.centerOrderArr = function () {
   }
   return dataList
 }
+```
+
+## 单例模式
+
+单例模式是为了保证生成的实例对象在整个系统中仅有一个，可以用来节省内存以及简化复杂环境下的配置管理
+
+```javascript
+// 闭包实现
+var single = (() => {
+  var unique
+
+  function getInstance () {
+    if (unique === undefined) {
+      unique = new Construct()
+    }
+    return unique
+  }
+
+  function Construct () {/* 单例构造函数 */}
+
+  return {
+    // 获取单例的方法
+    getInstance: getInstance
+  }
+})()
+
+// 构造函数实现
+function Single () {
+  if (Single.unique !== undefined) return Single.unique
+  // 静态变量
+  Single.unique = this
+}
+
+// 对象字面量实现
+var single = {/* 对象属性 */}
 ```
