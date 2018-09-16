@@ -2,10 +2,18 @@
 
 > 收集自己用过或者试验过的一些有用的代码片段或者算法实现，而不是简单地从别的地方fork后看都没看。人生路漫漫，自勉！
 
+<!-- TOC -->
+
 - [functional-chip](#functional-chip)
   - [数组扁平化](#数组扁平化)
   - [快速排序](#快速排序)
   - [二叉树](#二叉树)
+  - [单例模式](#单例模式)
+  - [函数节流与防抖](#函数节流与防抖)
+    - [节流](#节流)
+    - [去抖 || 消抖](#去抖--消抖)
+
+<!-- /TOC -->
 
 ## 数组扁平化
 
@@ -220,10 +228,152 @@ var single = (() => {
 // 构造函数实现
 function Single () {
   if (Single.unique !== undefined) return Single.unique
-  // 静态变量
+  // 类似java中的静态变量
   Single.unique = this
 }
 
 // 对象字面量实现
 var single = {/* 对象属性 */}
+```
+
+## 函数节流与防抖
+
+### 节流
+
+函数节流指的是指定一段时间内，函数仅执行一次，通常用来优化频繁的事件触发。如，scroll，resize等。
+
+> 最简单的就是在执行函数内套一层 **requestAnimationFrame**。对于频繁的动画效果具有非常好的优化效果
+
+```javascript
+window.onscroll = () => {
+  requestAnimationFrame(() => {
+    //事件处理代码
+  })
+}
+```
+
+> 上面代码虽然简单，但是 **requestAnimationFrame** 是根据浏览器的刷新频率(通常是16ms)间隔来节流，不能自己来定间隔，但16ms的间隔很多时候还是过于频繁了，且 **requestAnimationFrame** 严格来讲并没有对函数运算做节流，只是把动画效果合并，提升了页面的渲染速度。所以，我们还是需要一个节流函数来对有着大量运算的函数进行节流。
+
+```javascript
+/**
+ * 函数节流的简单实现
+ * @param {Function} func 需要节流的函数
+ * @param {Number} delay 延时单位ms
+ */
+
+function throttle (func, delay) {
+  let last = 0
+  return function () {
+    const current = +new Date()
+    if (current - last > delay) {
+      func.apply(this, arguments)
+      last = current
+    }
+  }
+}
+
+/**
+ * underscore里的节流函数源码修改
+ * @param {Function} func 需要节流的函数
+ * @param {Number} delay 延时单位ms
+ * @param {{immediate: Boolean, trailing: Boolean}} opts 配置项 
+ *   @param {Boolean} opts.immediate 是否一触发就立即执行，默认是
+ *   @param {Boolean} opts.trailing 最后是否再执行一次，默认否
+ * 
+ */
+function throttle (func, delay, opts = {}) {
+  var ctx, args, res, timer = null, last = 0
+  opts.immediate === undefined ? opts.immediate = true : false
+  // 拖尾
+  function later () {
+    // 在拖尾之后初始化last以便于下个循环开始时，
+    last = opts.immediate ? +new Date() : 0
+    timer = null
+    res = func.apply(ctx, args)
+    ctx = args = null
+  }
+  return function () {
+    var now = +new Date()
+    if (!last && !opts.immediate) last = now
+    // 时间差
+    var remaining = delay - (now - last)
+    ctx = this
+    args = arguments
+    if (remaining <= 0 || remaining > delay) {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+      last = now
+      res = func.apply(ctx, args)
+      if (!timer) ctx = args = null
+    } else if (!timer && opts.trailing) {
+      timer = setTimeout(later, remaining)
+    }
+    return res
+  }
+}
+```
+
+### 去抖 || 消抖
+
+去抖或者说消抖指的是，一个函数在某个条件下必须延时规定时间再执行，如果该条件在延时时间内再次触发则时间重置，在延时规定时间再执行。语文不行，讲起来有点绕口了==举个栗子，比如说电梯门吧，出于安全考虑规定没人通过门3s后关闭，如果到了2s有人进来了，那么需要再过3s没人进来才会关闭，总不能到第3s就马上关了，那第3s进来的人可真惨。当然如果每过2s都有人进来的话，建议你还是爬楼梯吧==
+
+```javascript
+/**
+ * 函数去抖的简单实现
+ * @param {Function} func 需要节流的函数
+ * @param {Number} delay 延时单位ms
+ */
+function debounce (func, delay) {
+  clearTimeout(func.fid)
+  func.fid = setTimeout(() => func.call(this), delay)
+}
+
+function debounce (func, delay) {
+  var timer = null;
+  return function () {
+    clearTimeout(timer);
+    timer = setTimeout(() => func.apply(this, arguments), delay)
+  }
+}
+
+/**
+ * underscore里的防抖函数源码修改
+ * @param {Function} func 需要防抖的函数
+ * @param {Number} delay 延时单位ms
+ * @param {Boolean} immediate 是否第一次调用立即执行，默认是
+ */
+function debouce (func, delay, immediate = false) {
+  var timer, args, ctx, timestamp, res
+  var later = function () {
+    // 如果未达到指定间隔，重复调用函数会不断刷新timestamp
+    var last = +new Date() - timestamp
+    if (last < delay && last > 0) {
+      // 未达到指定间隔，重复调用，则重新起一个定时器
+      timer = setTimeout(later, delay - last)
+    } else {
+      timer = null
+      if (!immediate) {
+        res = func.apply(ctx, args)
+        ctx = args = null
+      }
+    }
+  }
+
+  return function () {
+    ctx = this
+    args = arguments
+    timestamp = +new Date()
+    // 没有定时器且immediate为true时立即调用
+    var callNow = immediate && !timer
+    // 没有定时器时，设置一个定时器
+    if (!timer) timer = setTimeout(later, delay)
+    if (callNow) {
+      res = func.apply(ctx, args)
+      ctx = args = null
+    }
+    return res
+  }
+}
 ```
